@@ -14,15 +14,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/golang/protobuf/proto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-)
-
-var (
-	envPodIP        string
-	envPodName      string
-	envPodNamespace string
 )
 
 // Info stores the server configuration
@@ -45,24 +36,10 @@ type Info struct {
 // reponse. It does not implement channels publish-subscriber pattern
 // because it results in a burst of requisitions to the servers.
 func New(config string) (*Info, error) {
-
 	info := &Info{}
-	kubeIps := checkKubernetesEnv()
-	if kubeIps != nil {
-
-		fmt.Println("Initializing by kubernetes config...")
-		info.Rep = len(kubeIps)
-		info.SvrIps = kubeIps
-		info.Udpport = 15000
-		info.ThinkingTimeMsec = 10
-		info.Localip = envPodIP
-	} else {
-
-		fmt.Println("Initializing by toml config file...")
-		_, err := toml.DecodeFile(config, info)
-		if err != nil {
-			return nil, err
-		}
+	_, err := toml.DecodeFile(config, info)
+	if err != nil {
+		return nil, err
 	}
 
 	fmt.Println(
@@ -77,7 +54,6 @@ func New(config string) (*Info, error) {
 
 // Connect creates a tcp connection to every replica on the cluster
 func (client *Info) Connect() error {
-
 	client.Svrs = make([]net.Conn, client.Rep)
 	client.reader = make([]*bufio.Reader, client.Rep)
 	var err error
@@ -128,7 +104,6 @@ func (client *Info) Broadcast(message string) error {
 
 // BroadcastProtobuf sends a serialized command to the cluster
 func (client *Info) BroadcastProtobuf(message *pb.Command, clientUDPPort string) error {
-
 	message.Ip = clientUDPPort
 	serializedMessage, err := proto.Marshal(message)
 	if err != nil {
@@ -244,107 +219,7 @@ func main() {
 			continue
 		}
 
-		// TODO: These serialized calls to Read() are inneficient, must find a way
-		// to execute an async read to every socket with a better performance
-		// for i := range cluster.reader {
-		// 	repply := cluster.ReadTCP(i)
-		// 	if repply != "" {
-		// 		fmt.Printf("Received message: %s", repply)
-		// 		break
-		// 	}
-		// }
-		//repply := cluster.ReadTCPParallel()
-
 		repply, _ := cluster.ReadUDP()
 		fmt.Printf("Received message: %s", repply)
 	}
-}
-
-func checkKubernetesEnv() []string {
-
-	var ok bool
-	envPodName, ok = os.LookupEnv("MY_POD_NAME")
-
-	// If MY_POD_NAME is set, check the index name suffix
-	if ok {
-		nameTags := strings.Split(envPodName, "-")
-		var ind int
-		var err error
-
-		// e.g. loadgen-app-1-hashcode
-		if len(nameTags) >= 3 {
-			ind, err = strconv.Atoi(nameTags[2])
-			if err != nil {
-				fmt.Println("could not parse env index")
-				ind = -1
-			}
-		} else {
-			ind = -1
-		}
-		ips, err := getAppsFromKube(ind)
-		if err != nil {
-			log.Fatalln("could not init kubernetes config, err:", err.Error())
-		}
-		return ips
-	}
-	return nil
-}
-
-func getAppsFromKube(podIndex int) ([]string, error) {
-
-	var ok bool
-	envPodNamespace, ok = os.LookupEnv("MY_POD_NAMESPACE")
-	if !ok {
-		envPodNamespace = "default"
-	}
-
-	// capturing own POD_IP to ignore it on search
-	envPodIP, ok = os.LookupEnv("MY_POD_IP")
-	if !ok {
-		envPodIP = "127.0.0.1"
-	}
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	// get only pods in the current namespace
-	pods, err := clientset.CoreV1().Pods(envPodNamespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	podFilter := ""
-
-	// Search for matching indexes
-	if podIndex > -1 {
-		podFilter = "-" + strconv.Itoa(podIndex)
-		fmt.Println("Now searching for pods with", podFilter, "suffix pattern")
-	}
-
-	podIps := make([]string, 0)
-	for _, pod := range pods.Items {
-
-		// Avoiding logger assigns when an empty filter is set
-		if strings.Contains(pod.Status.ContainerStatuses[0].Name, podFilter) &&
-			!strings.Contains(pod.Status.ContainerStatuses[0].Name, "logger") {
-
-			if pod.Status.PodIP == "" {
-				log.Fatalln("forcing a container restart...")
-			}
-
-			// ignore own IP...
-			if strings.Compare(pod.Status.PodIP, envPodIP) != 0 {
-				ip := pod.Status.PodIP + ":11000"
-				podIps = append(podIps, ip)
-			}
-		}
-	}
-	return podIps, nil
 }
