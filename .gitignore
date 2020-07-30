@@ -1,0 +1,6 @@
+*.out
+*.log
+*checkpoints/
+
+logger/logger
+recovery/recovery
