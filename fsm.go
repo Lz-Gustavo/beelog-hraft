@@ -26,9 +26,11 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 		return err
 	}
 
-	err = f.LogCommand(l.Index, cmd, f.Logging)
-	if err != nil {
-		panic(fmt.Sprintf("couldnt log command: %v", *cmd))
+	if f.Logging != NotLog {
+		err = f.LogCommand(l.Index, cmd, f.Logging)
+		if err != nil {
+			panic(fmt.Sprintf("couldnt log command: %v", *cmd))
+		}
 	}
 
 	switch cmd.Op {
@@ -135,7 +137,6 @@ func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 	if err != nil {
 		sink.Cancel()
 	}
-
 	return err
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path=/home/lzgustavo/go/src/raft-demo
+path=/home/lzgustavo/go/src/beelog-hraft
 local=.
 
 #clientsFolders=(1 4 7 10 13 16 19)

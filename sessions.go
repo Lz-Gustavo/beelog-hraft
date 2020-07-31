@@ -11,7 +11,7 @@ import (
 // Request struct represents received requests to the KVstore service.
 type Request struct {
 	Command []byte
-	Ip      string
+	IP      string
 }
 
 // Session struct which represents each active client session connected

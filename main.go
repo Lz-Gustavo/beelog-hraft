@@ -29,26 +29,10 @@ func init() {
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to a file")
 	memprofile = flag.String("memprofile", "", "write memory profile to a file")
 	logfolder = flag.String("logfolder", "", "log received commands to a file at specified destination folder")
-	flag.Parse()
-
-	if svrID == "" {
-		log.Fatalln("Must set a server ID, run with: ./server -id 'svrID'")
-	}
-
-	fmt.Println(
-		"=========================",
-		"\n=== Running with config:",
-		"\nID:    ", svrID,
-		"\napp:   ", svrPort,
-		"\nraft:  ", raftAddr,
-		"\njoin:  ", joinAddr,
-		"\nhjoin: ", joinHandlerAddr,
-		"\nhrecov:", recovHandlerAddr,
-		"\n=========================",
-	)
 }
 
 func main() {
+	parseAndDebugConfig()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -64,7 +48,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize the Key-value store
-	kvs := New(ctx, true)
+	kvs := NewStore(ctx, true)
 	listener, err := net.Listen("tcp", svrPort)
 	if err != nil {
 		log.Fatalf("failed to start connection: %s", err.Error())
@@ -112,13 +96,11 @@ func main() {
 			log.Fatal("could not write memory profile: ", err)
 		}
 	}
-
 	cancel()
 	server.Exit()
 }
 
 func sendJoinRequest() error {
-
 	joinConn, err := net.Dial("tcp", joinAddr)
 	if err != nil {
 		return fmt.Errorf("failed to connect to leader node at %s: %s", joinAddr, err.Error())
@@ -142,4 +124,23 @@ func parseIPsFromArgsConfig() {
 	flag.StringVar(&joinAddr, "join", "", "Set join address, if any")
 	flag.StringVar(&joinHandlerAddr, "hjoin", "", "Set port id to receive join requests on the raft cluster")
 	flag.StringVar(&recovHandlerAddr, "hrecov", "", "Set port id to receive state transfer requests from the application log")
+}
+
+func parseAndDebugConfig() {
+	flag.Parse()
+	if svrID == "" {
+		log.Fatalln("Must set a server ID, run with: ./server -id 'svrID'")
+	}
+
+	fmt.Println(
+		"=========================",
+		"\n=== Running with config:",
+		"\nID:    ", svrID,
+		"\napp:   ", svrPort,
+		"\nraft:  ", raftAddr,
+		"\njoin:  ", joinAddr,
+		"\nhjoin: ", joinHandlerAddr,
+		"\nhrecov:", recovHandlerAddr,
+		"\n=========================",
+	)
 }

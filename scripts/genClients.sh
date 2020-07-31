@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #goSource=.
-goSource=raft-demo/client
+goSource=beelog-hraft/client
 
 if [[ $# -ne 6 ]] && [[ $# -ne 7 ]]
 then

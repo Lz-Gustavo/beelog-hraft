@@ -33,8 +33,8 @@ func NewServer(ctx context.Context, s *Store) *Server {
 		kvstore:  s,
 		t:        time.NewTimer(time.Second),
 	}
-	svr.throughput = createWriteFile(svrID+"-throughput.out", os.O_TRUNC)
 
+	svr.throughput = createWriteFile(svrID+"-throughput.out", os.O_TRUNC)
 	go svr.Listen(ctx)
 	go svr.monitor(ctx)
 	return svr
@@ -42,7 +42,6 @@ func NewServer(ctx context.Context, s *Store) *Server {
 
 // Exit closes the raft context and releases any resources allocated
 func (svr *Server) Exit() {
-
 	svr.kvstore.raft.Shutdown()
 	if svr.kvstore.Logging == DiskTrad {
 		svr.kvstore.LogFile.Close()
@@ -69,9 +68,8 @@ func (svr *Server) SendUDP(addr string, message string) {
 // HandleRequest handles the client requistion, checking if it matches the right syntax
 // before proposing it to the FSM
 func (svr *Server) HandleRequest(cmd *Request) {
-
 	data := bytes.TrimSuffix(cmd.Command, []byte("\n"))
-	if err := svr.kvstore.Propose(data, svr, cmd.Ip); err != nil {
+	if err := svr.kvstore.Propose(data, svr, cmd.IP); err != nil {
 		svr.kvstore.logger.Error(fmt.Sprintf("Failed to propose message: %q, error: %s\n", data, err.Error()))
 	}
 	atomic.AddUint64(&svr.req, 1)
@@ -128,7 +126,6 @@ func (svr *Server) monitor(ctx context.Context) {
 
 // Legacy code, used only on ad-hoc message formats.
 func validateReq(requisition string) bool {
-
 	requisition = strings.ToLower(requisition)
 	splited := strings.Split(requisition, "-")
 

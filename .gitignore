@@ -2,5 +2,6 @@
 *.log
 *checkpoints/
 
+beelog-hraft
 logger/logger
 recovery/recovery

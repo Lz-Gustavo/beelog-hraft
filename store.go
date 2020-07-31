@@ -144,8 +144,8 @@ type Store struct {
 	mu       sync.Mutex
 }
 
-// New returns a new Store.
-func New(ctx context.Context, inMem bool) *Store {
+// NewStore returns a new Store :)
+func NewStore(ctx context.Context, inMem bool) *Store {
 	s := &Store{
 		m:        make(map[string][]byte),
 		inMem:    inMem,
@@ -296,7 +296,6 @@ func (s *Store) testGet(key string) string {
 // then this node becomes the first node, and therefore leader, of the cluster.
 // localID should be the server identifier for this node.
 func (s *Store) StartRaft(enableSingle bool, localID string, localRaftAddr string) error {
-
 	// Setup Raft configuration.
 	config := configRaft()
 	config.LocalID = raft.ServerID(localID)
@@ -353,7 +352,6 @@ func (s *Store) JoinRaft(nodeID, addr string, voter bool) error {
 	}
 
 	for _, rep := range configFuture.Configuration().Servers {
-
 		// If a node already exists with either the joining node's ID or address,
 		// that node may need to be removed from the config first.
 		if rep.ID == raft.ServerID(nodeID) || rep.Address == raft.ServerAddress(addr) {
@@ -407,7 +405,6 @@ func (s *Store) ListenRaftJoins(ctx context.Context, addr string) {
 			if err != nil {
 				log.Fatalf("accept failed: %s", err.Error())
 			}
-
 			request, _ := bufio.NewReader(conn).ReadString('\n')
 
 			data := strings.Split(request, "-")
@@ -526,9 +523,8 @@ func (s *Store) ListenStateTransfer(ctx context.Context, addr string) {
 				log.Fatalf("accept failed: %s", err.Error())
 			}
 
-			request, _ := bufio.NewReader(conn).ReadString('\n')
-
-			data := strings.Split(request, "-")
+			req, _ := bufio.NewReader(conn).ReadString('\n')
+			data := strings.Split(req, "-")
 			if len(data) != 3 {
 				log.Fatalf("incorrect state request, got: %s", data)
 			}

@@ -7,6 +7,8 @@ WORKDIR /go/src/kvstore
 COPY go.mod .
 COPY go.sum .
 RUN apk update && apk add git && apk add gcc
+
+# currently failing due to private dependency
 RUN go mod download
 COPY kvstore .
 RUN go build -o kvstore
