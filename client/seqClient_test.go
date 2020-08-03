@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"runtime"
@@ -20,8 +21,10 @@ const (
 	// One client has a '1/measureChance' chance to capture latency of it's next requisition.
 	measureChance int = 30
 
-	// Just the 'watcherIndex'th client will be recording latency based on 'measureChance'.
-	watcherIndex int = 0
+	// The ceil of 'clients/watcherRatio' indicates the number of clients recording latency
+	// based on 'measureChance'. A ratio greater then the number of clients indicates that all
+	// clients will be recording latency.
+	watcherRatio = 3
 )
 
 var (
@@ -56,7 +59,6 @@ func init() {
 }
 
 func TestNumMessagesKvstore(b *testing.T) {
-
 	b.Parallel()
 	flag.Parse()
 	if Cfg.numClients == 0 || Cfg.numMessages == 0 || Cfg.numKey == 0 {
@@ -84,22 +86,22 @@ func TestNumMessagesKvstore(b *testing.T) {
 
 	var logger *log.Logger
 	if Cfg.mustLog {
-		outFile, err := os.OpenFile(strconv.Itoa(Cfg.numClients)+"c-latency.out", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		outFile, err := os.OpenFile(strconv.Itoa(Cfg.numClients)+"c-latency.out", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			b.Fatalf("could not open log file: %s\n", err.Error())
 		}
 		defer outFile.Close()
 		logger = log.New(outFile, "", 0)
 	}
-
 	clients := make([]*Info, Cfg.numClients, Cfg.numClients)
+	maxClients := int(math.Ceil(float64(Cfg.numClients) / watcherRatio))
 
 	for i := 0; i < Cfg.numClients; i++ {
 		go func(j int) {
 
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
-			chosenClient := j == watcherIndex
+			chosenClient := j < maxClients
 
 			var err error
 			clients[j], err = New(*configFilename)
@@ -195,7 +197,6 @@ func TestNumMessagesKvstore(b *testing.T) {
 }
 
 func TestClientTimeKvstore(b *testing.T) {
-
 	b.Parallel()
 	flag.Parse()
 	if Cfg.numClients == 0 || Cfg.execTime == 0 || Cfg.numKey == 0 {
@@ -223,7 +224,7 @@ func TestClientTimeKvstore(b *testing.T) {
 
 	var logger *log.Logger
 	if Cfg.mustLog {
-		outFile, err := os.OpenFile(strconv.Itoa(Cfg.numClients)+"c-latency.out", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		outFile, err := os.OpenFile(strconv.Itoa(Cfg.numClients)+"c-latency.out", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			b.Fatalf("could not open log file: %s\n", err.Error())
 		}
@@ -232,6 +233,7 @@ func TestClientTimeKvstore(b *testing.T) {
 	}
 
 	clients := make([]*Info, Cfg.numClients, Cfg.numClients)
+	maxClients := int(math.Ceil(float64(Cfg.numClients) / watcherRatio))
 	signal := make(chan bool)
 	requests := make(chan *pb.Command, Cfg.numMessages)
 
@@ -243,7 +245,7 @@ func TestClientTimeKvstore(b *testing.T) {
 
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
-			chosenClient := j == watcherIndex
+			chosenClient := j < maxClients
 
 			var err error
 			clients[j], err = New(*configFilename)
