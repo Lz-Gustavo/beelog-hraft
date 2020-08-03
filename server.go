@@ -79,6 +79,7 @@ func (svr *Server) HandleRequest(cmd *Request) {
 func (svr *Server) Join(ctx context.Context, connection net.Conn) {
 	client := NewSession(connection)
 	svr.clients = append(svr.clients, client)
+	svr.kvstore.logger.Info("New client connected!")
 
 	go func() {
 		for {

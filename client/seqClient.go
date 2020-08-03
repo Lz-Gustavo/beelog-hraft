@@ -77,7 +77,6 @@ func (client *Info) Disconnect() {
 
 // StartUDP initializes UDP listener, used to receive servers repplies
 func (client *Info) StartUDP() error {
-
 	addr := net.UDPAddr{
 		IP:   net.ParseIP(client.Localip),
 		Port: client.Udpport,
@@ -136,12 +135,10 @@ func (client *Info) ReadTCP(readerID int) string {
 // the go routine until it receives the delim from the socket. Thats not a
 // desired behavior, since it may be expecting repplies from a faulty replica
 func (client *Info) ReadTCPParallel() string {
-
 	chn := make(chan string, client.Rep)
 	for i := range client.reader {
 
 		go func(j int, rp chan<- string) {
-
 			line, err := client.reader[j].ReadString('\n')
 			if err == nil {
 				rp <- line
@@ -154,7 +151,6 @@ func (client *Info) ReadTCPParallel() string {
 
 // ReadUDP returns any received message from UDP listener for servers reppply
 func (client *Info) ReadUDP() (string, error) {
-
 	data := make([]byte, 128)
 	_, _, err := client.receiver.ReadFromUDP(data)
 	if err != nil {
@@ -166,6 +162,7 @@ func (client *Info) ReadUDP() (string, error) {
 // Shutdown realeases every resource and finishes goroutines launched by the
 // client programm
 func (client *Info) Shutdown() {
+	client.Broadcast("CLOSE\n")
 	client.Disconnect()
 }
 
@@ -175,8 +172,8 @@ func init() {
 	configFilename = flag.String("config", "client-config.toml", "Filepath to toml file")
 }
 
+// Experiments are run through seqClient_test procedures.
 func main() {
-
 	flag.Parse()
 	if *configFilename == "" {
 		log.Fatalln("must set a config filepath: ./client -config '../config.toml'")
@@ -186,10 +183,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to find config: %s", err.Error())
 	}
-
-	fmt.Println("rep:", cluster.Rep)
-	fmt.Println("svrIps:", cluster.SvrIps)
-	fmt.Println("udpaddr:", cluster.Udpport)
 
 	err = cluster.Connect()
 	if err != nil {
@@ -203,7 +196,6 @@ func main() {
 
 	reader := bufio.NewReader(os.Stdin)
 	for {
-
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			log.Printf("input reader failed: %s", err.Error())

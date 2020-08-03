@@ -75,9 +75,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("accept failed: %s", err.Error())
 			}
-
 			server.joins <- conn
-			server.kvstore.logger.Info("New client connected!")
 		}
 	}()
 

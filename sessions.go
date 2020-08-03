@@ -2,10 +2,17 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"net"
 	"strings"
+)
+
+var (
+	// Any ocurrence of 'closeToken' signals a leaving client, gently stopping
+	// goroutines and releasing acquired resources.
+	closeToken = []byte("-CLOSE\n")
 )
 
 // Request struct represents received requests to the KVstore service.
@@ -14,8 +21,7 @@ type Request struct {
 	IP      string
 }
 
-// Session struct which represents each active client session connected
-// on the cluster
+// Session struct represents each active client session connected on the cluster.
 type Session struct {
 	incoming chan *Request
 	outgoing chan string
@@ -25,9 +31,8 @@ type Session struct {
 	cancel   context.CancelFunc
 }
 
-// NewSession instantiates a new client
+// NewSession instantiates a new client.
 func NewSession(connection net.Conn) *Session {
-
 	reader := bufio.NewReader(connection)
 	writer := bufio.NewWriter(connection)
 	ctx, c := context.WithCancel(context.Background())
@@ -40,7 +45,6 @@ func NewSession(connection net.Conn) *Session {
 		conn:     connection,
 		cancel:   c,
 	}
-
 	client.Listen(ctx)
 	return client
 }
@@ -54,6 +58,11 @@ func (client *Session) Read(ctx context.Context) {
 		default:
 			line, err := client.reader.ReadBytes('\n')
 			if err == nil && len(line) > 1 {
+				if bytes.Contains(line, closeToken) {
+					client.Disconnect()
+					return
+				}
+
 				ip := client.conn.RemoteAddr().String()
 				ipContent := strings.Split(ip, ":")
 				newRequest := &Request{line, ipContent[0]}
@@ -85,8 +94,7 @@ func (client *Session) Listen(ctx context.Context) {
 	go client.Write(ctx)
 }
 
-// Disconnect closes both in and out channels, consequently panicking
-// Read and Write goroutines
+// Disconnect cancels the active context, consequently halting all active goroutines.
 func (client *Session) Disconnect() {
 	client.cancel()
 	client.conn.Close()
