@@ -40,7 +40,9 @@ func main() {
 		log.Fatalln("must set a valid IP address to request state, run with: ./recovery -recov 'ipAddress'")
 	}
 	if multipleLogs {
-		fmt.Println("Expecting multiple logs...")
+		fmt.Println("mult=TRUE, Expecting multiple logs...")
+	} else {
+		fmt.Println("mult=FALSE, Expecting a single log...")
 	}
 
 	if err := validInterval(firstIndex, lastIndex); err != nil {

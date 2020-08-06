@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	bl "github.com/Lz-Gustavo/beelog"
@@ -117,7 +119,7 @@ func configBeelog() *bl.LogConfig {
 		Inmem:   beelogInmem,
 		Period:  beelogPeriod,
 		KeepAll: defaultLogStrategy == BeelogConcTable,
-		Fname:   "/tmp/beelog-state-" + svrID + ".log", // ignored if inmem
+		Fname:   "/tmp/beelog-" + svrID + ".log", // ignored if inmem
 	}
 }
 
@@ -137,7 +139,7 @@ type Store struct {
 	Logging  LogStrategy
 	LogFile  *os.File
 	LogFname string
-	logCount uint64
+	logCount uint32 // atomic
 
 	st       bl.Structure
 	inMemLog *[]pb.Command
@@ -207,7 +209,7 @@ func (s *Store) initLogConfig(ctx context.Context) error {
 		break
 
 	case DiskTrad:
-		s.LogFname = *logfolder + "log-file-" + svrID + ".log"
+		s.LogFname = *logfolder + "logfile-" + svrID + ".log"
 		s.LogFile = createWriteFile(s.LogFname)
 		break
 
@@ -454,10 +456,37 @@ func (s *Store) LogStateRecover(p, n uint64, activePipe net.Conn) error {
 		break
 
 	case DiskTrad:
-		fd, _ := os.OpenFile(s.LogFname, os.O_RDONLY, 0644)
+		// TODO: must rethink this entire procedure to threat concurrent calls between
+		// fsm.Log() and LogStateRecover(). Its currently UNSAFE.
+		fd, err := os.OpenFile(s.LogFname, os.O_RDWR, 0644)
+		if err != nil {
+			return err
+		}
 		defer fd.Close()
 
-		data, err := bl.UnmarshalLogFromReader(fd)
+		// set cursor at the end
+		if _, err = fd.Seek(0, io.SeekEnd); err != nil {
+			return err
+		}
+
+		// write EOL ad-hoc flag
+		_, err = fmt.Fprintf(fd, "\nEOL\n")
+		if err != nil {
+			return err
+		}
+
+		// flush content
+		if err = fd.Sync(); err != nil {
+			return err
+		}
+
+		// reset cursor
+		if _, err = fd.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+
+		count := atomic.LoadUint32(&s.logCount)
+		data, err := bl.UnmarshalLogWithLenFromReader(fd, int(count))
 		if err != nil {
 			return err
 		}
@@ -547,30 +576,25 @@ func (s *Store) ListenStateTransfer(ctx context.Context, addr string) {
 }
 
 func createWriteFile(filename string, extraFlags ...int) *os.File {
-	var flags int
+	flags := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
 	if catastrophicFaults {
-		flags = os.O_WRONLY | os.O_SYNC
-	} else {
-		flags = os.O_WRONLY
+		flags = flags | os.O_SYNC
 	}
 
 	for _, f := range extraFlags {
 		flags = flags | f
 	}
 
-	var fd *os.File
-	if _, exists := os.Stat(filename); exists == nil {
-		fd, _ = os.OpenFile(filename, flags, 0644)
-	} else if os.IsNotExist(exists) {
-		fd, _ = os.OpenFile(filename, os.O_CREATE|flags, 0644)
-	} else {
-		log.Fatalln("Could not create file", filename, ":", exists.Error())
+	fd, err := os.OpenFile(filename, flags, 0644)
+	if err != nil {
+		log.Fatalln("could not create file '", filename, "', err:", err.Error())
 		return nil
 	}
 
-	// important for the first command log interpretation, and doesnt compromise
-	// throughput reading.
-	_, err := fmt.Fprintf(fd, "%d\n%d\n%d\n", 0, 0, 0)
+	// Important for the first command log interpretation, and doesnt compromise
+	// throughput reading. Informed log during recov will have the right number
+	// of commands due to 'bl.MarshalLogIntoWriter()'.
+	_, err = fmt.Fprintf(fd, "%d\n%d\n%d\n", uint64(0), uint64(0), -1)
 	if err != nil {
 		log.Fatalln("Error during file creation:", err.Error())
 		return nil

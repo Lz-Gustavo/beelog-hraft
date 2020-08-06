@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"sync/atomic"
 
 	"github.com/Lz-Gustavo/beelog/pb"
 
@@ -165,7 +166,7 @@ func (f *fsm) LogCommand(ind uint64, cmd *pb.Command, st LogStrategy) error {
 		if err != nil {
 			return err
 		}
-		f.logCount++
+		atomic.AddUint32(&f.logCount, 1)
 		break
 
 	case InmemTrad:
@@ -176,7 +177,7 @@ func (f *fsm) LogCommand(ind uint64, cmd *pb.Command, st LogStrategy) error {
 		}
 		*f.inMemLog = append(*f.inMemLog, *cmd)
 		f.mu.Unlock()
-		f.logCount++
+		atomic.AddUint32(&f.logCount, 1)
 		break
 
 	case BeelogList, BeelogArray, BeelogAVL, BeelogCircBuffer, BeelogConcTable:

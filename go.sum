@@ -1,8 +1,8 @@
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v2.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/Lz-Gustavo/beelog v0.0.0-20200729172524-0434cb2755f0 h1:8iy3Ag5xy+qrW0GgQ0XtKGXkLPbD8RU4J+PlL2QgyP4=
-github.com/Lz-Gustavo/beelog v0.0.0-20200729172524-0434cb2755f0/go.mod h1:2caGYNskAV0tcOBJgOQG5KxC5d7YcwSk+NXHT8+PZ/0=
+github.com/Lz-Gustavo/beelog v0.0.0-20200806172403-b4e603daa4cf h1:Xy4QE83YO+RimPi7KJXPWpg0bWX2Y6N3gvGsFqjASlM=
+github.com/Lz-Gustavo/beelog v0.0.0-20200806172403-b4e603daa4cf/go.mod h1:2caGYNskAV0tcOBJgOQG5KxC5d7YcwSk+NXHT8+PZ/0=
 github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878 h1:EFSB7Zo9Eg91v7MJPVsifUysc/wPdN+NOnVe6bWbdBM=
 github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878/go.mod h1:3AMJUQhVx52RsWOnlkpikZr01T/yAVN2gn0861vByNg=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
