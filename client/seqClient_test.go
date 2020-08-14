@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"flag"
@@ -28,6 +28,8 @@ const (
 )
 
 var (
+	configFilename *string
+
 	dataChoice int
 	oneTweet   = strings.Repeat("@", 128)  // dataChoice 0
 	oneKB      = strings.Repeat("@", 1024) // dataChoice 1

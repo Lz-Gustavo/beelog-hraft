@@ -5,3 +5,4 @@
 beelog-hraft
 logger/logger
 recovery/recovery
+client/cmd/cmd
