@@ -58,6 +58,7 @@ func init() {
 	flag.Int64Var(&Cfg.execTime, "time", 0, "Set the execution time of the experiment")
 	flag.BoolVar(&Cfg.mustLog, "log", true, "Set if this client execution will generate latency logs (0: false; 1: true)")
 	flag.IntVar(&dataChoice, "data", -1, "Choose the size of the stored value in the KV storage ('0' = 128B, '1' = 1KB, '2' = 4KB)")
+	configFilename = flag.String("config", "client-config.toml", "Filepath to toml file")
 }
 
 func TestNumMessagesKvstore(b *testing.T) {
