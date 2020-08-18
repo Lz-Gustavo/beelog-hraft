@@ -1,10 +1,8 @@
-package ycsb
+package client
 
 import (
 	"context"
 	"strconv"
-
-	"beelog-hraft/client"
 
 	"github.com/Lz-Gustavo/beelog/pb"
 	"github.com/magiconair/properties"
@@ -18,7 +16,7 @@ const (
 
 // beelogKV
 type beelogKV struct {
-	client client.Info
+	client Info
 }
 
 // Close closes the database layer.
@@ -129,7 +127,7 @@ func (bc BeelogKVCreator) Create(p *properties.Properties) (ycsb.DB, error) {
 		fn = defaultConfigFn
 	}
 
-	cl, err := client.New(fn)
+	cl, err := New(fn)
 	if err != nil {
 		return nil, err
 	}
