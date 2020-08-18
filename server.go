@@ -34,7 +34,7 @@ func NewServer(ctx context.Context, s *Store) *Server {
 		t:        time.NewTimer(time.Second),
 	}
 
-	svr.throughput = createWriteFile(svrID+"-throughput.out", os.O_TRUNC)
+	svr.throughput = createWriteFile(svrID+"-throughput.out", false)
 	go svr.Listen(ctx)
 	go svr.monitor(ctx)
 	return svr

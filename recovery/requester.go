@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	flag.IntVar(&sleepDuration, "sleep", 60, "set the countdown for a state request, defaults to 1min")
+	flag.IntVar(&sleepDuration, "sleep", 0, "set a countdown in seconds for a state request, defaults to none (0s)")
 	flag.StringVar(&recovAddr, "recov", ":14000", "set an address to request state, defaults to localhost:14000")
 	flag.StringVar(&firstIndex, "p", "", "set the first index of requested state")
 	flag.StringVar(&lastIndex, "n", "", "set the last index of requested state")
@@ -79,29 +79,23 @@ func AskForStateTransfer(p, n string) ([]byte, uint64) {
 
 // MeasureStateInstallation ...
 func MeasureStateInstallation(replica *MockState, recvState []byte) (numCmds, duration uint64) {
-	// In order to identify the received interval without a stdout during timing
-	var (
-		p, n, cmds uint64
-		err        error
-	)
+	var cmds uint64
+	var err error
 
 	start := time.Now()
 	if multipleLogs {
-		cmds, err = replica.InstallRecovStateForMultipleLogs(recvState, &p, &n)
+		cmds, err = replica.InstallRecovStateForMultipleLogs(recvState)
 		if err != nil {
 			log.Fatalf("failed to install the received state: %s", err.Error())
 		}
 
 	} else {
-		cmds, err = replica.InstallRecovState(recvState, &p, &n)
+		cmds, err = replica.InstallRecovState(recvState)
 		if err != nil {
 			log.Fatalf("failed to install the received state: %s", err.Error())
 		}
 	}
 	finish := uint64(time.Since(start) / time.Nanosecond)
-
-	// prints only the last retrieved interval on multiple logs.
-	fmt.Printf("Received interval: [%d, %d]\n", p, n)
 	return cmds, finish
 }
 

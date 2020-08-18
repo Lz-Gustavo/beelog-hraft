@@ -17,8 +17,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DataDog/datadog-go v2.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/Lz-Gustavo/beelog v0.0.0-20200806172403-b4e603daa4cf h1:Xy4QE83YO+RimPi7KJXPWpg0bWX2Y6N3gvGsFqjASlM=
-github.com/Lz-Gustavo/beelog v0.0.0-20200806172403-b4e603daa4cf/go.mod h1:2caGYNskAV0tcOBJgOQG5KxC5d7YcwSk+NXHT8+PZ/0=
+github.com/Lz-Gustavo/beelog v0.0.0-20200818182544-469d0796ff5c h1:rfD9lFj0YqVRRYS6Ek/DTMAADHiWDTHIZATDbc80j2I=
+github.com/Lz-Gustavo/beelog v0.0.0-20200818182544-469d0796ff5c/go.mod h1:2caGYNskAV0tcOBJgOQG5KxC5d7YcwSk+NXHT8+PZ/0=
 github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c/go.mod h1:KcL6D/4RZ8RAYzQ5gKI0odcdWUmCVlbQTOlWrhP71CY=
 github.com/aerospike/aerospike-client-go v1.35.2/go.mod h1:zj8LBEnWBDOVEIJt8LvaRvDG5ARAoa5dBeHaB472NRc=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

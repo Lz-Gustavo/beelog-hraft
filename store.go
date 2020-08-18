@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -210,7 +209,7 @@ func (s *Store) initLogConfig(ctx context.Context) error {
 
 	case DiskTrad:
 		s.LogFname = *logfolder + "logfile-" + svrID + ".log"
-		s.LogFile = createWriteFile(s.LogFname)
+		s.LogFile = createWriteFile(s.LogFname, true)
 		break
 
 	case BeelogAVL:
@@ -456,36 +455,20 @@ func (s *Store) LogStateRecover(p, n uint64, activePipe net.Conn) error {
 		break
 
 	case DiskTrad:
-		// TODO: must rethink this entire procedure to threat concurrent calls between
-		// fsm.Log() and LogStateRecover(). Its currently UNSAFE.
-		fd, err := os.OpenFile(s.LogFname, os.O_RDWR, 0644)
+		fd, err := os.OpenFile(s.LogFname, os.O_RDONLY, 0644)
 		if err != nil {
 			return err
 		}
 		defer fd.Close()
 
-		// set cursor at the end
-		if _, err = fd.Seek(0, io.SeekEnd); err != nil {
-			return err
-		}
-
-		// write EOL ad-hoc flag
-		_, err = fmt.Fprintf(fd, "\nEOL\n")
-		if err != nil {
-			return err
-		}
-
-		// flush content
-		if err = fd.Sync(); err != nil {
-			return err
-		}
-
-		// reset cursor
-		if _, err = fd.Seek(0, io.SeekStart); err != nil {
-			return err
-		}
-
+		// TODO: must rethink this entire procedure to threat concurrent calls between
+		// fsm.Log() and LogStateRecover(). Its currently UNSAFE due to concurrent 'logCount'
+		// increment and 'UnmarshalWithLen' calls, and a mutex acquisition on each cmd
+		// logging seems too expensive (benchmark).
 		count := atomic.LoadUint32(&s.logCount)
+
+		// EOL flag is not mandatory on 'UnmarshalWithLen', and its later written by
+		// 'MarshalLogIntoWriter' procedure
 		data, err := bl.UnmarshalLogWithLenFromReader(fd, int(count))
 		if err != nil {
 			return err
@@ -505,7 +488,6 @@ func (s *Store) LogStateRecover(p, n uint64, activePipe net.Conn) error {
 		return fmt.Errorf("unknow log strategy '%v' provided", s.Logging)
 	}
 
-	// TODO: fix recov procedure on disktrad config for the new log format
 	if trad {
 		buff := bytes.NewBuffer(nil)
 
@@ -575,8 +557,8 @@ func (s *Store) ListenStateTransfer(ctx context.Context, addr string) {
 	}
 }
 
-func createWriteFile(filename string, extraFlags ...int) *os.File {
-	flags := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
+func createWriteFile(filename string, logindex bool, extraFlags ...int) *os.File {
+	flags := os.O_CREATE | os.O_TRUNC | os.O_WRONLY | os.O_APPEND
 	if catastrophicFaults {
 		flags = flags | os.O_SYNC
 	}
@@ -591,13 +573,15 @@ func createWriteFile(filename string, extraFlags ...int) *os.File {
 		return nil
 	}
 
-	// Important for the first command log interpretation, and doesnt compromise
-	// throughput reading. Informed log during recov will have the right number
-	// of commands due to 'bl.MarshalLogIntoWriter()'.
-	_, err = fmt.Fprintf(fd, "%d\n%d\n%d\n", uint64(0), uint64(0), -1)
-	if err != nil {
-		log.Fatalln("Error during file creation:", err.Error())
-		return nil
+	if logindex {
+		// Important for the first command log interpretation, and doesnt compromise
+		// throughput reading. Informed log during recov will have the right number
+		// of commands due to 'bl.MarshalLogIntoWriter()'.
+		_, err = fmt.Fprintf(fd, "%d\n%d\n%d\n", uint64(0), uint64(0), -1)
+		if err != nil {
+			log.Fatalln("Error during file creation:", err.Error())
+			return nil
+		}
 	}
 	return fd
 }

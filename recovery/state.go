@@ -2,15 +2,12 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
+	bl "github.com/Lz-Gustavo/beelog"
 	"github.com/Lz-Gustavo/beelog/pb"
-
-	"github.com/golang/protobuf/proto"
 )
 
 var (
@@ -37,47 +34,11 @@ func NewMockState() *MockState {
 }
 
 // InstallRecovState ...
-func (m *MockState) InstallRecovState(newState []byte, f, l *uint64) (uint64, error) {
+func (m *MockState) InstallRecovState(newState []byte) (uint64, error) {
 	rd := bytes.NewReader(newState)
-	var ln int
-	_, err := fmt.Fscanf(rd, "%d\n%d\n%d\n", f, l, &ln)
+	cmds, err := bl.UnmarshalLogFromReader(rd)
 	if err != nil {
 		return 0, err
-	}
-
-	cmds := make([]pb.Command, 0, ln)
-	for i := 0; i < ln; i++ {
-		var cmdLen int32
-		err := binary.Read(rd, binary.BigEndian, &cmdLen)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return 0, err
-		}
-
-		raw := make([]byte, cmdLen)
-		_, err = rd.Read(raw)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return 0, err
-		}
-
-		c := &pb.Command{}
-		err = proto.Unmarshal(raw, c)
-		if err != nil {
-			return 0, err
-		}
-		cmds = append(cmds, *c)
-	}
-
-	var eol string
-	_, err = fmt.Fscanf(rd, "\n%s\n", &eol)
-	if err != nil {
-		return 0, err
-	}
-	if eol != "EOL" {
-		return 0, fmt.Errorf("expected EOL flag, got '%s'", eol)
 	}
 
 	m.applyCommandLog(cmds)
@@ -85,7 +46,7 @@ func (m *MockState) InstallRecovState(newState []byte, f, l *uint64) (uint64, er
 }
 
 // InstallRecovStateForMultipleLogs ...
-func (m *MockState) InstallRecovStateForMultipleLogs(newState []byte, f, l *uint64) (uint64, error) {
+func (m *MockState) InstallRecovStateForMultipleLogs(newState []byte) (uint64, error) {
 	rd := bytes.NewReader(newState)
 	var nLogs int
 
@@ -94,54 +55,18 @@ func (m *MockState) InstallRecovStateForMultipleLogs(newState []byte, f, l *uint
 	if err != nil {
 		return 0, err
 	}
-	cmds := make([]pb.Command, 0, 256*nLogs)
 
+	var nCmds uint64
 	for i := 0; i < nLogs; i++ {
-		// read the retrieved log interval and num of commands
-		var ln int
-		_, err := fmt.Fscanf(rd, "%d\n%d\n%d\n", f, l, &ln)
+		cmds, err := bl.UnmarshalLogFromReader(rd)
 		if err != nil {
 			return 0, err
 		}
 
-		for j := 0; j < ln; j++ {
-			var cmdLen int32
-			err := binary.Read(rd, binary.BigEndian, &cmdLen)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return 0, err
-			}
-
-			raw := make([]byte, cmdLen)
-			_, err = rd.Read(raw)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return 0, err
-			}
-
-			c := &pb.Command{}
-			err = proto.Unmarshal(raw, c)
-			if err != nil {
-				return 0, err
-			}
-			cmds = append(cmds, *c)
-		}
-
-		var eol string
-		_, err = fmt.Fscanf(rd, "\n%s\n", &eol)
-		if err != nil {
-			return 0, err
-		}
-		if eol != "EOL" {
-			return 0, fmt.Errorf("expected EOL flag, got '%s'", eol)
-		}
+		nCmds += uint64(len(cmds))
+		m.applyCommandLog(cmds)
 	}
-
-	// apply commands from ALL retrieved logs (already ordered)
-	m.applyCommandLog(cmds)
-	return uint64(len(cmds)), nil
+	return nCmds, nil
 }
 
 func (m *MockState) applyCommandLog(log []pb.Command) {

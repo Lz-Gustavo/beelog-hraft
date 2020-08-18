@@ -10,13 +10,13 @@ This folder organizes client implementations for the *beelog-hraft* key-value st
 
 	Execute **genClients.sh** or **run.sh** scripts located at **beelog-hraft/scripts** or manually set a workload of a fixed number of messages by running:
 	```
-		go test beelog-hraft/client -run TestNumMessagesKvstore -count 1 -clients=5 -req=1000 -key=100000 -data=1 -log=0 -config=/path/to/config.toml
+	go test beelog-hraft/client -run TestNumMessagesKvstore -count 1 -clients=5 -req=1000 -key=100000 -data=1 -log=0 -config=/path/to/config.toml
 	```
 	```-clients``` flag corresponds to the number of concurrent clients, **each of them** launching ```-req``` random requests; ```-key``` represents the number of different possible keys interpret by the key-value application; ```-data``` configures the size of proposed values, where **0: 128B**, **1: 1KB**, **2: 4KB**; ```-log``` sets wheter clients should output latency on a file (1 or 0, *i.e.* **true** or **false**); ```-config``` sets the **.toml** config file location (**./client-config.toml** is set if ommited).
 
 	You can also launch a workload with an execution time limit, where ```-time``` flag corresponds to the desired time limit in seconds:
 	```
-		go test beelog-hraft/client -run TestClientTimeKvstore -count 1 -clients=5 -time=60 -key=100000 -data=1 -log=0 -config=/path/to/config.toml
+	go test beelog-hraft/client -run TestClientTimeKvstore -count 1 -clients=5 -time=60 -key=100000 -data=1 -log=0 -config=/path/to/config.toml
 	```
 	Make sure *beelog-hraft/client* is accessable throught ```$GOPATH```.
 
