@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -36,6 +37,11 @@ func NewMockState() *MockState {
 // InstallRecovState ...
 func (m *MockState) InstallRecovState(newState []byte) (uint64, error) {
 	rd := bytes.NewReader(newState)
+	return m.InstallRecovStateFromReader(rd)
+}
+
+// InstallRecovStateFromReader ...
+func (m *MockState) InstallRecovStateFromReader(rd io.Reader) (uint64, error) {
 	cmds, err := bl.UnmarshalLogFromReader(rd)
 	if err != nil {
 		return 0, err
@@ -48,6 +54,11 @@ func (m *MockState) InstallRecovState(newState []byte) (uint64, error) {
 // InstallRecovStateForMultipleLogs ...
 func (m *MockState) InstallRecovStateForMultipleLogs(newState []byte) (uint64, error) {
 	rd := bytes.NewReader(newState)
+	return m.InstallRecovStateForMultipleLogsFromReader(rd)
+}
+
+// InstallRecovStateForMultipleLogsFromReader ...
+func (m *MockState) InstallRecovStateForMultipleLogsFromReader(rd io.Reader) (uint64, error) {
 	var nLogs int
 
 	// read num of retrieved logs, only on multiple logs config
@@ -56,6 +67,11 @@ func (m *MockState) InstallRecovStateForMultipleLogs(newState []byte) (uint64, e
 		return 0, err
 	}
 
+	// TODO: currently considers an ordered sequence of logs being informed by replicas,
+	// which increases recovery time and thus, compromises availability. Modify solution
+	// when unordered logs can be returned by the conctable.RecovEntireLog()
+	//
+	// NOTE: not a priority for now
 	var nCmds uint64
 	for i := 0; i < nLogs; i++ {
 		cmds, err := bl.UnmarshalLogFromReader(rd)

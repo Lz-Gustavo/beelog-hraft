@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,34 +9,10 @@ import (
 	"time"
 )
 
-const (
-	preInitialize = false
-	numInitKeys   = 1000000
-	initValueSize = 128
-)
-
-var (
-	// Used to initialize a state transfer protocol to the application log after a specified
-	// number of seconds.
-	sleepDuration         int
-	recovAddr             string
-	firstIndex, lastIndex string
-	multipleLogs          bool
-)
-
-func init() {
-	flag.IntVar(&sleepDuration, "sleep", 0, "set a countdown in seconds for a state request, defaults to none (0s)")
-	flag.StringVar(&recovAddr, "recov", ":14000", "set an address to request state, defaults to localhost:14000")
-	flag.StringVar(&firstIndex, "p", "", "set the first index of requested state")
-	flag.StringVar(&lastIndex, "n", "", "set the last index of requested state")
-	flag.BoolVar(&multipleLogs, "mult", false, "inform wheter multiple logs will be returned")
-}
-
-func main() {
-	flag.Parse()
+func requestLogs() error {
 	validIP := recovAddr != ""
 	if !validIP {
-		log.Fatalln("must set a valid IP address to request state, run with: ./recovery -recov 'ipAddress'")
+		return fmt.Errorf("must set a valid IP address to request state, run with: ./recovery -recov 'ipAddress'")
 	}
 	if multipleLogs {
 		fmt.Println("mult=TRUE, Expecting multiple logs...")
@@ -46,7 +21,7 @@ func main() {
 	}
 
 	if err := validInterval(firstIndex, lastIndex); err != nil {
-		log.Fatalln(err.Error(), "must set a valid interval, run with: ./recovery -p 'num' -n 'num'")
+		return fmt.Errorf("%s, must set a valid interval, run with: ./recovery -p 'num' -n 'num'", err.Error())
 	}
 	recovReplica := NewMockState()
 
@@ -64,6 +39,7 @@ func main() {
 		"\nNum of commands:   ", num,
 		"\nState size (bytes):", len(state),
 	)
+	return nil
 }
 
 // AskForStateTransfer ...
@@ -78,7 +54,7 @@ func AskForStateTransfer(p, n string) ([]byte, uint64) {
 }
 
 // MeasureStateInstallation ...
-func MeasureStateInstallation(replica *MockState, recvState []byte) (numCmds, duration uint64) {
+func MeasureStateInstallation(replica *MockState, recvState []byte) (nCmds, dur uint64) {
 	var cmds uint64
 	var err error
 
@@ -114,7 +90,7 @@ func sendStateRequest(first, last string) ([]byte, error) {
 	var recv []byte
 	recv, err = ioutil.ReadAll(stateConn)
 	if err != nil {
-		log.Fatalln("could not read state response:", err.Error())
+		return nil, fmt.Errorf("could not read state response: %s", err.Error())
 	}
 
 	if err = stateConn.Close(); err != nil {
