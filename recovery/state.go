@@ -47,7 +47,7 @@ func (m *MockState) InstallRecovStateFromReader(rd io.Reader) (uint64, error) {
 		return 0, err
 	}
 
-	m.applyCommandLog(cmds)
+	m.applyLog(cmds)
 	return uint64(len(cmds)), nil
 }
 
@@ -80,13 +80,13 @@ func (m *MockState) InstallRecovStateForMultipleLogsFromReader(rd io.Reader) (ui
 		}
 
 		nCmds += uint64(len(cmds))
-		m.applyCommandLog(cmds)
+		m.applyLog(cmds)
 	}
 	return nCmds, nil
 }
 
-func (m *MockState) applyCommandLog(log []pb.Command) {
-	// apply received commands on mock state
+// applyLog executes received commands on mock state.
+func (m *MockState) applyLog(log []pb.Command) {
 	for _, cmd := range log {
 		switch cmd.Op {
 		case pb.Command_SET:
@@ -96,4 +96,24 @@ func (m *MockState) applyCommandLog(log []pb.Command) {
 			break
 		}
 	}
+}
+
+// applyLogCountingDiffKeys executes received commands on mock state, returning the
+// number of different keys identified.
+func (m *MockState) applyLogCountingDiffKeys(log []pb.Command) int {
+	diff := 0
+	for _, cmd := range log {
+		if _, ok := m.state[cmd.Key]; !ok {
+			diff++
+		}
+
+		switch cmd.Op {
+		case pb.Command_SET:
+			m.state[cmd.Key] = []byte(cmd.Value)
+
+		default:
+			break
+		}
+	}
+	return diff
 }

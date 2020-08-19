@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	bl "github.com/Lz-Gustavo/beelog"
 )
 
 const (
@@ -37,15 +39,15 @@ func checkLocalLogs() error {
 	sort.Sort(byLenAlpha(dlogs))
 	sort.Sort(byLenAlpha(blogs))
 
-	//logs := [][]string{dlogs, blogs}
-	//names := []string{"disktrad", "beelog"}
-	logs := [][]string{blogs}
-	names := []string{"beelog"}
+	logs := [][]string{dlogs, blogs}
+	names := []string{"disktrad", "beelog"}
 
 	for i, l := range logs {
+		var (
+			diff, nCmds int
+			totalSize   int64
+		)
 		state := NewMockState()
-		var nCmds uint64
-		var totalSize int64
 
 		for _, fn := range l {
 			fd, err := os.OpenFile(fn, os.O_RDONLY, 0400)
@@ -60,21 +62,24 @@ func checkLocalLogs() error {
 			}
 			totalSize += info.Size()
 
-			n, err := state.InstallRecovStateFromReader(fd)
+			cmds, err := bl.UnmarshalLogFromReader(fd)
 			if err != nil {
 				fd.Close()
 				return err
 			}
-			nCmds += n
+			dk := state.applyLogCountingDiffKeys(cmds)
+
+			nCmds += len(cmds)
+			diff += dk
 			fd.Close()
 		}
 
 		fmt.Println(
 			"=========================",
 			"\nFinished installing logs for", names[i],
-			"\nNum of diff logs:", len(l),
-			"\nNum of commands:", nCmds,
-			"\nRepetitive keys: TODO",
+			"\nNum of different logs:   ", len(l),
+			"\nNum of commands:         ", nCmds,
+			"\nNum of unique keys:      ", diff,
 			"\nTotal state size (bytes):", totalSize,
 		)
 	}
