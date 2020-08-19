@@ -10,6 +10,12 @@ import (
 )
 
 func requestLogs() error {
+	fmt.Println(
+		"=========================",
+		"\nrunning state requester...",
+		"\n=========================",
+	)
+
 	validIP := recovAddr != ""
 	if !validIP {
 		return fmt.Errorf("must set a valid IP address to request state, run with: ./recovery -recov 'ipAddress'")

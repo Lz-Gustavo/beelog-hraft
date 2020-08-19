@@ -10,11 +10,17 @@ import (
 )
 
 const (
-	disktradLogs = "/tmp/log-file*.log"
+	disktradLogs = "/tmp/logfile*.log"
 	beelogLogs   = "/tmp/beelog*.log"
 )
 
 func checkLocalLogs() error {
+	fmt.Println(
+		"=========================",
+		"\nrunning log verifier...",
+		"\n=========================",
+	)
+
 	dlogs, err := filepath.Glob(disktradLogs)
 	if err != nil {
 		return err
@@ -31,18 +37,28 @@ func checkLocalLogs() error {
 	sort.Sort(byLenAlpha(dlogs))
 	sort.Sort(byLenAlpha(blogs))
 
-	logs := [][]string{dlogs, blogs}
-	names := []string{"disktrad", "beelog"}
+	//logs := [][]string{dlogs, blogs}
+	//names := []string{"disktrad", "beelog"}
+	logs := [][]string{blogs}
+	names := []string{"beelog"}
 
 	for i, l := range logs {
 		state := NewMockState()
 		var nCmds uint64
+		var totalSize int64
 
 		for _, fn := range l {
 			fd, err := os.OpenFile(fn, os.O_RDONLY, 0400)
 			if err != nil && err != io.EOF {
 				return fmt.Errorf("failed while opening log '%s', err: '%s'", fn, err.Error())
 			}
+
+			info, err := fd.Stat()
+			if err != nil {
+				fd.Close()
+				return err
+			}
+			totalSize += info.Size()
 
 			n, err := state.InstallRecovStateFromReader(fd)
 			if err != nil {
@@ -56,17 +72,35 @@ func checkLocalLogs() error {
 		fmt.Println(
 			"=========================",
 			"\nFinished installing logs for", names[i],
+			"\nNum of diff logs:", len(l),
 			"\nNum of commands:", nCmds,
 			"\nRepetitive keys: TODO",
-			"\nState size (bytes): TODO",
+			"\nTotal state size (bytes):", totalSize,
 		)
 	}
 	return nil
 }
 
-// TODO: must ignore equal logs from diff nodes...
+// rmvRepetitiveLogs identifies the first node identifier within log filenames,
+// then ignores logs from all different nodes.
 func rmvRepetitiveLogs(logs []string) []string {
-	return nil
+	if len(logs) < 1 {
+		return nil
+	}
+	uniques := make([]string, 0, len(logs))
+
+	// e.g. beelog-node1.1000.log -> [beelog-node1., 1000.log]
+	split := strings.SplitAfterN(logs[0], ".", 2)
+
+	// e.g. beelog-node1. -> node1.
+	id := strings.SplitAfter(split[0], "-")[1]
+
+	for _, l := range logs {
+		if strings.Contains(l, id) {
+			uniques = append(uniques, l)
+		}
+	}
+	return uniques
 }
 
 type byLenAlpha []string
