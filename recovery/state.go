@@ -111,6 +111,10 @@ func (m *MockState) applyLogCountingDiffKeys(log []pb.Command) int {
 		case pb.Command_SET:
 			m.state[cmd.Key] = []byte(cmd.Value)
 
+		case pb.Command_GET:
+			// insert an empty value to count READ operations on unique keys
+			m.state[cmd.Key] = []byte{}
+
 		default:
 			break
 		}
