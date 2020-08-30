@@ -1,11 +1,14 @@
 #!/bin/bash
 
-path=/home/lzgustavo/go/src/go-ycsb
+#path=/home/lzgustavo/go/src/go-ycsb
+path=/users/gustavo/go/src/go-ycsb
 
 numClients=(1 4 7 10 13 16 19)
-workloads=("workloadb")
-execTime=10 #seconds
+workloads=("workloada")
 numDiffKeys=1000000
+
+# TODO: explain this...
+execTime=1 #seconds
 
 if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]
 then
@@ -17,7 +20,7 @@ fi
 # default config location
 config=$path/db/kvbeelog/client-config.toml
 if [[ $# -eq 3 ]]; then
-	${config}=${3}
+	config=${3}
 fi
 
 #echo "compiling go-ycsb..."
@@ -34,11 +37,14 @@ for i in ${workloads[*]}; do
 			$path/bin/go-ycsb run kvbeelog -P $path/workloads/${i} -p threadcount=${j} -p recordcount=${numDiffKeys} -p operationcount=$((${j} * ${execTime} * 10000)) -p target=10000 -p kvbeelog.config=${config} -p kvbeelog.output=${1}
 		fi
 
-		echo "Finished running experiment for ${i} clients..."
+		echo "Finished running experiment for ${j} clients..."
 
 		# waiting for server reasource dealloc...
 		sleep 10s
 	done
 	echo "finished running for ${i}..."; echo ""
+
+	mv $path/../beelog-hraft/*.out ${1}
 done
+
 echo "finished!"

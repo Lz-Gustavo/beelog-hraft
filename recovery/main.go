@@ -12,8 +12,8 @@ const (
 )
 
 var (
-	// switches execution between the log verifier and state requester.
-	checkMode bool
+	// If informed, executes the log verifier script instead of and state requester.
+	checkDir string
 
 	// used to initialize a state transfer protocol to the application log after a
 	// specified number of seconds.
@@ -25,7 +25,7 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&checkMode, "check", false, "switches execution between the log verifier and state requester, defaults to the latter")
+	flag.StringVar(&checkDir, "check", "", "inform a check location to switch execution between the log verifier and state requester, defaults to the latter")
 	flag.IntVar(&sleepDuration, "sleep", 0, "set a countdown in seconds for a state request, defaults to none (0s)")
 	flag.StringVar(&recovAddr, "recov", ":14000", "set an address to request state, defaults to localhost:14000")
 	flag.StringVar(&firstIndex, "p", "", "set the first index of requested state")
@@ -35,7 +35,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	if checkMode {
+	if checkDir != "" {
 		err := checkLocalLogs()
 		if err != nil {
 			log.Fatalln("failed logs verification with err: '", err.Error(), "'")

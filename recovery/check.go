@@ -12,24 +12,24 @@ import (
 )
 
 const (
-	disktradLogs = "/tmp/logfile*.log"
-	beelogLogs   = "/tmp/beelog*.log"
+	disktradLogs = "logfile*.log"
+	beelogLogs   = "beelog*.log"
 )
 
 func checkLocalLogs() error {
 	fmt.Println(
 		"=========================",
-		"\nrunning log verifier...",
+		"\nrunning log verifier on", checkDir, "...",
 		"\n=========================",
 	)
 
-	dlogs, err := filepath.Glob(disktradLogs)
+	dlogs, err := filepath.Glob(checkDir + disktradLogs)
 	if err != nil {
 		return err
 	}
 	dlogs = rmvRepetitiveLogs(dlogs)
 
-	blogs, err := filepath.Glob(beelogLogs)
+	blogs, err := filepath.Glob(checkDir + beelogLogs)
 	if err != nil {
 		return err
 	}
